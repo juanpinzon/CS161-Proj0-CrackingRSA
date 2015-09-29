@@ -1,0 +1,96 @@
+Answering to the Media
+
+1. The certificate that belongs to the Joker is: cert2.crt
+
+2. * General Idea.
+   I tooke m = c^d mod n, and then check among the certificates to know 
+   what is the certificate of the Joker so m = one of these certificates.
+   
+   
+   * Repeated squares method of calculating RSA
+   Let me explain through an example first and then move to the code.
+   
+   For example you wan to calculate 5^13 mod 21
+   - First calculate the binary expansion of 13
+     13/2 = 6 and remainder is 1 (then 13 is odd)
+     6/2  = 3 and remainder is 0 (then 6 is even)
+     3/2  = 1 and remainder is 1 (then 3 is odd)    
+     1/2  = 0 and remainder is 1 (then 1 is odd)    
+        
+	 Then the binary expasion is 13 = 2^4 + 2^2 + 2^0.
+	                             13 = 8 + 4 + 1 
+	 
+	 Note that the binary expasion only uses the powers of two when the 
+	 exponent is odd.
+     
+   - Then 5^13 = (5^8 * 5^4 * 5^0) mod 21 = 5 mod 21
+   
+   This is the same idea I used in the algorithm:
+    //each iteration divide d by two until d reach zero
+    for(;mpz_cmp_ui(d, 0) > 0; mpz_div_ui(d, d, 2)) {
+		mpz_mod_ui(odd, d, 2);		//calculate if d is odd or even		
+		
+		//If in this iteration d is odd (d mod 2 != 0), then 
+		//result = result * message mod n. result accumulate final result
+		//The reason is because the final result can be calculated by 
+		//taking products according to the binary expansion of d.
+		//then if current exponent is odd then is part of the binary expansion of d.
+		if(mpz_cmp_ui(odd, 0) != 0) {
+			mpz_mul(result, result, message);
+			mpz_mod(result, result, n);
+		}
+		
+		//In each iteration square the message mod n. So in each iteration
+		//calculates the square of the message.
+		mpz_mul(message, message, message);
+		mpz_mod(message, message, n);		
+	}
+	
+3. If you don't use repeated squaring the runtime of RSA is:
+   Modular multiplication let us to keep only the (intermediate result) mod n at each step.
+   So we handle only numbers less than the modulo.
+   It requires d multiplications, so runtime of RSA is O(d)
+
+4. If you use repeated squaring the runtime of RSA is:
+   Following the algorithm I described in part 2, we can notice that
+   - every time exponent is even then there is just one operation, a squaring.
+   - every time exponent is odd then there are two operation, a squuaring and
+     and a muiplication. 
+   - Note squaring is a multiplication but both operands have the same value.
+   As a result the maximum number of operations is at most twice the number of
+   bits in the binary expansion of d. Then runtime RSA is O(log(d))
+   
+
+
+5. What is the role of a Certificate Authority? 
+   The role of the CA is to guarantee that the individual owner of a digital
+   certificate is, in fact, who he or she claims to be. 
+      
+   What are some dangers if a certificate authority signs certificates 
+   without properly background checking the requestor?
+   
+   The dangers are really serious because a malicious person can use a 
+   digital certificate to get confidential information from people 
+   who trust in the validity of the digital certificate. 
+   
+   - According with Infose Institute "Improper certificates are issued by the CAs and hackers use them for 
+   cyber attacks. In one of the most blatant cases, DigiCert mistakenly 
+   sold a certificate to a non-existent company. The digital certificate
+   was then used to sign malware used in cyber attacks." (1)
+   
+   - "Bad actors use digital certificates to eavesdrop on SSL/TLS traffic.
+    Usually these attacks exploit the lack of strict controls by client 
+    applications when a server presents them with an SSL/TLS certificate
+    signed by a trusted but unexpected Certification Authority." (1)
+    Then an attacker that is able to obtain a fake certificate from any CA
+    and present it to the client during the connection phase can impersonate
+    every encrypted web site the victim visits. 
+   
+   
+   
+   
+   
+   (1) http://resources.infosecinstitute.com/cybercrime-exploits-digital-certificates/
+   
+   
+   
